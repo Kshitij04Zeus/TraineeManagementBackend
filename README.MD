@@ -179,7 +179,7 @@ The Docker Compose file starts
 - GET /api/training-directory/assignments/{assignmentId}/processing-profile
 
 ## Workflow Diagram
-![Architecture](Workflow_Diagram.png)
+<img width="2428" height="1228" alt="Image" src="https://github.com/user-attachments/assets/e065443c-7faf-42f6-b9dd-4ed572c46059" />
 
 ## Design Decisions
  
