@@ -180,6 +180,8 @@ The Docker Compose file starts
 
 ## Workflow Diagram
 <img width="2428" height="1228" alt="Image" src="https://github.com/user-attachments/assets/e065443c-7faf-42f6-b9dd-4ed572c46059" />
+https://github.com/Kshitij04Zeus/TraineeManagementBackend/issues/1#issue-4777186404
+<img width="2428" height="1228" alt="Image" src="https://github.com/user-attachments/assets/e065443c-7faf-42f6-b9dd-4ed572c46059" />
 
 ## Design Decisions
  
