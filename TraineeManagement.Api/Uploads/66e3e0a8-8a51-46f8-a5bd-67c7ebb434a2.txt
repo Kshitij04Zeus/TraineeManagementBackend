@@ -1,0 +1,24 @@
+Yesterday: Improved and incorporated feedback for TaskTracker Application
+Today: Learnt C# and Asp.Net, incorporated the following features:
+- Created Web API project 
+- Created Health Check API
+- Created Trainee model
+- Create temporary in memory List 
+- Created GET and POST APIS, which fetches details of all trainees, fetches details of trainees based on a specific id, and also  allows creation of a trainee
+
+Blockers: It was difficult to install dotnet packages due to proxy server difficulty 
+Reviewer Feedback:
+
+Yesterday: Created Trainee Management API Project with the features: 
+- Created Health Check API
+- Created Trainee model
+- Create temporary in memory List 
+- Created GET and POST APIS, which fetches details of all trainees, fetches details of trainees based on a specific id, and also  allows creation of a trainee
+
+Today: Incorporated the following features:
+- Created and used 3 DTOs which were used for creating trainee, updating trainee and for returning trainee details.
+- Implemented Service Layer which is imeplemented and registered using dependency injection
+- PUT and DELETE APIs have also been made along with the status codes for success, validation and not found scenarios
+
+Blockers: None
+Reviewer Feedback:

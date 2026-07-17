@@ -3,3 +3,5 @@
 **/obj/
 **/logs
 /docker
+dump.sql
+.env
