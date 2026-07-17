@@ -27,7 +27,7 @@ public static class DbSeeder
  
         adminUser.PasswordHash = passwordHasher.HashPassword(
             adminUser,
-            "admin123");
+            Environment.GetEnvironmentVariable("DbSeeder_Password"););
  
         await context.Users.AddAsync(adminUser);
         await context.SaveChangesAsync();
