@@ -18,7 +18,7 @@ public static class DbSeeder
  
         var adminUser = new User
         {
-            Username = "admin",
+            Username = Environment.GetEnvironmentVariable("DbSeeder_Username"),
             Email = "admin@test.com",
             Role = UserRole.Admin,
             CreatedDate = DateTime.UtcNow,
