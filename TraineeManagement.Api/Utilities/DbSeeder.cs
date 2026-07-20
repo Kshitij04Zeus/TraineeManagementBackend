@@ -9,7 +9,11 @@ public static class DbSeeder
 {
     public static async Task SeedAdminUserAsync(AppDbContext context)
     {
-        if (await context.Users.AnyAsync(u => u.Username == "admin"))
+        var username = Environment.GetEnvironmentVariable("DbSeeder_Username");
+        var password=Environment.GetEnvironmentVariable("DbSeeder_Password");
+        var email = Environment.GetEnvironmentVariable("DbSeeder_Email");
+
+        if (await context.Users.AnyAsync(u => u.Username == username))
         {
             return;
         }
@@ -18,8 +22,8 @@ public static class DbSeeder
  
         var adminUser = new User
         {
-            Username = Environment.GetEnvironmentVariable("DbSeeder_Username"),
-            Email = "admin@test.com",
+            Username = username,
+            Email = email,
             Role = UserRole.Admin,
             CreatedDate = DateTime.UtcNow,
             UpdatedDate = DateTime.UtcNow
@@ -27,7 +31,7 @@ public static class DbSeeder
  
         adminUser.PasswordHash = passwordHasher.HashPassword(
             adminUser,
-            Environment.GetEnvironmentVariable("DbSeeder_Password")
+            password
         );
  
         await context.Users.AddAsync(adminUser);
