@@ -4,10 +4,11 @@ using TraineeManagement.Api.DTO;
 using TraineeManagement.Api.Models;
 using TraineeManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace TraineeManagement.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "AdminOrMentorOrTrainee")]
 [ApiController]
 [Route("api/submission-files")]
 
@@ -20,20 +21,20 @@ public class SubmissionFilesController : ControllerBase {
   [HttpGet("{id:int}/download")]
   public async Task<ActionResult> Download(int id) 
   {
-      var file = await _service.DownloadAsync(id);
+      var file = await _service.DownloadAsync(id,User);
       return File(file.Stream,file.ContentType,file.FileName);
   }
 
   [HttpDelete("{id:int}")]
-  public async Task<ActionResult> Create(int id) {
-      await _service.DeleteAsync(id);
+  public async Task<ActionResult> Delete(int id) {
+      await _service.DeleteAsync(id,User);
       return NoContent();
   }
 
   [HttpGet("{id:int}")]
   public async Task<ActionResult> GetMetadata(int id) {
     string correlationId=HttpContext.TraceIdentifier;
-    var result=await _service.GetMetadataByIdAsync(id,correlationId);
+    var result=await _service.GetMetadataByIdAsync(id,correlationId,User);
     return Ok(result);
   }
 

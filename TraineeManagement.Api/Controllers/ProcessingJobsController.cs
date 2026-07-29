@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace TraineeManagement.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "AdminOnly")]
 [ApiController]
 [Route("api/processing-jobs")]
 public class ProcessingJobsController : ControllerBase

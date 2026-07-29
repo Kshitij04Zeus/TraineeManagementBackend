@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using TraineeManagement.Api.CustomExceptions;
 using TraineeManagement.Api.Contracts;
 using RabbitMQ.Client;
+using System.Security.Claims;
 
 namespace TraineeManagement.Api.Services;
 
@@ -39,7 +40,6 @@ public class SubmissionFileService:ISubmissionFileService
         } 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if(!_settings.AllowedExtensions.Contains(extension)) throw new ArgumentException("File Type Is Not Allowed");
-        Console.WriteLine(file.ContentType);
         
         if(!_settings.AllowedContentTypes.Contains(file.ContentType)) throw new ArgumentException("File Content Type Is Not Allowed");
 
@@ -66,6 +66,7 @@ public class SubmissionFileService:ISubmissionFileService
             ContentType=file.ContentType,
             FileSize=file.Length,
             CheckSum=checksum,
+            UploadedByUserId = userId,
             CreatedDate=DateTime.Now
         };
         await _context.SubmissionFiles.AddAsync(metadata);
@@ -122,10 +123,17 @@ public class SubmissionFileService:ISubmissionFileService
         };
     }
 
-    public async Task<FileDownloadResponse> DownloadAsync(int fileId)
+    public async Task<FileDownloadResponse> DownloadAsync(int fileId,ClaimsPrincipal user)
     {
         var metadata=await _context.SubmissionFiles.FindAsync(fileId);
         if(metadata==null) throw new KeyNotFoundException("File Not Found");
+
+        int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        if (metadata.UploadedByUserId != userId)
+        {
+            throw new UnauthorizedAccessException("You are not authorized to access this file.");
+        }
 
         var exists=await _storage.ExistsAsync(metadata.StorageFileName);
         if(!exists) throw new KeyNotFoundException("Physical File missing");
@@ -140,20 +148,35 @@ public class SubmissionFileService:ISubmissionFileService
         };
     }
 
-    public async Task DeleteAsync(int fileId)
+    public async Task DeleteAsync(int fileId,ClaimsPrincipal user)
     {
         var metadata=await _context.SubmissionFiles.FindAsync(fileId);
         if(metadata==null) throw new KeyNotFoundException("File Not Found");
+
+       int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        if (metadata.UploadedByUserId != userId)
+        {
+            throw new UnauthorizedAccessException("You are not authorized to access this file.");
+        }
+
         await _storage.DeleteAsync(metadata.StorageFileName);
         _context.SubmissionFiles.Remove(metadata);
         await _context.SaveChangesAsync();
         _logger.LogInformation("File Deleted successfully with Id: {id}",fileId);
     }
 
-    public async Task<SubmissionFileResponse?> GetMetadataByIdAsync(int fileId,string correlationId)
+    public async Task<SubmissionFileResponse?> GetMetadataByIdAsync(int fileId,string correlationId,ClaimsPrincipal user)
     {
         var metadata=await _context.SubmissionFiles.FindAsync(fileId);
         if(metadata==null) throw new KeyNotFoundException("File Not Found");
+
+        int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (metadata.UploadedByUserId != userId)
+        {
+            throw new UnauthorizedAccessException("You are not authorized to access this file.");
+        }
+
         return new SubmissionFileResponse
         {
             Id=metadata.Id,
@@ -163,6 +186,5 @@ public class SubmissionFileService:ISubmissionFileService
             CreatedDate=metadata.CreatedDate,
             CorrelationId=correlationId
         };
-        _logger.LogInformation("File Metadata retrieved successfully with Id: {id}",fileId);
     }
 }

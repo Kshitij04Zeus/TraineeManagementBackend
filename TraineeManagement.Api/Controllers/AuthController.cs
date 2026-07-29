@@ -26,10 +26,6 @@ public class AuthController:ControllerBase
     public async Task<IActionResult> Login(LoginRequest request)
     {
         var result=await _authservice.LoginAsync(request);
-        if(result==null)
-        {
-            return Unauthorized("Invalid Username or Password");
-        }
         return Ok(result);
     }
 }

@@ -125,6 +125,11 @@ public class SubmissionProcessingWorker : BackgroundService
                     var _context=scope.ServiceProvider.GetRequiredService<AppDbContext>();
                     var existingJob=await _context.ProcessingJobs.FirstOrDefaultAsync(x=>x.CorrelationId==message.CorrelationId);
 
+                    if (existingJob == null)
+                    {
+                        throw new InvalidOperationException($"Processing job not found for CorrelationId {message.CorrelationId}");
+                    }
+
                     if(existingJob!=null && existingJob.Status==ProcessingJobStatus.Completed)
                     {
                         _logger.LogInformation("Duplicate message by RabbitMQ ignored");
@@ -134,25 +139,11 @@ public class SubmissionProcessingWorker : BackgroundService
                     _logger.LogInformation("Received message. MessageId:{MessageId}, CorrelationId:{CorrelationId}, SubmissionId:{SubmissionId}",
                         message.MessageId, message.CorrelationId, message.SubmissionId);
                     
-                    if (existingJob == null)
-                    {
-                        existingJob = new ProcessingJob
-                        {
-                            MessageId=message.MessageId,
-                            CorrelationId=message.CorrelationId,
-                            SubmissionId=message.SubmissionId,
-                            FileId=message.FileId,
-                            Status = ProcessingJobStatus.Processing,
-                            Attempts = 0,
-                            StartedAt = DateTime.Now
-                        };
-                        _context.ProcessingJobs.Add(existingJob);
-                        await _context.SaveChangesAsync(stoppingToken);
-                    }
-                    else if(existingJob.Status==ProcessingJobStatus.Queued)
+                    if(existingJob.Status==ProcessingJobStatus.Queued)
                     {
                         existingJob.Status=ProcessingJobStatus.Processing;
                         existingJob.StartedAt=DateTime.Now;
+                        await _context.SaveChangesAsync();
                         _logger.LogInformation($"Processing of Job {existingJob.Id} for message {message.MessageId} has started.");
                     }
 
@@ -165,32 +156,30 @@ public class SubmissionProcessingWorker : BackgroundService
                         {
                             _logger.LogInformation("Metadata of the File is: ID: {FileId}, Name: {FileName}, Size: {FileSize} bytes, ContentType: {ContentType}", 
                                 metadata.Id, metadata.OriginalFileName, metadata.FileSize, metadata.ContentType);
-
-                            _logger.LogInformation("Fetching trainee profile from directory for TraineeId: {TraineeId}", 123);
+                            
+                            var traineeId=metadata?.UploadedByUserId?? throw new InvalidOperationException($"No trainee associated with FileId {message.FileId}");
+                            _logger.LogInformation("Fetching trainee profile from directory for TraineeId: {TraineeId}", traineeId);
                             var directoryClient = scope.ServiceProvider.GetRequiredService<ITrainingDirectoryClient>();
 
                             DirectoryTraineeProfileResponse? traineeProfile = null;
                             try
                             {
                                 traineeProfile = await directoryClient.GetTraineeProfileAsync(
-                                    123, 
+                                    traineeId, 
                                     message.CorrelationId, 
                                     stoppingToken
                                 );
+                                if (traineeProfile == null)
+                                {
+                                    traineeProfile = CreateFallbackProfile("NotFound","Directory service returned no matching trainee profile.");
+                                }
                             }
                             catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException || ex.GetType().Name.Contains("BrokenCircuitException"))
                             {
                                 _logger.LogWarning(ex, "Training Directory service is unavailable after resilience retries. Executing fallback policy.");
-                                traineeProfile = new DirectoryTraineeProfileResponse
-                                {
-                                    FullName = "Fallback Profile (Service Offline)",
-                                    Email = "offline@system.com",
-                                    TechStack = "Unknown",
-                                    Status = "Unavailable",
-                                    ProfileNote = "Populated via local worker fallback policy because directory was unreachable."
-                                };
+                                traineeProfile = CreateFallbackProfile("Unavailable",
+                                "Populated via local worker fallback policy because directory was unreachable.");
                             }
-
 
                             _logger.LogInformation(
                                     "Successfully retrieved profile for {FullName}. Details - Email: {Email}, TechStack: {TechStack}, Status: {Status}", 
@@ -217,13 +206,16 @@ public class SubmissionProcessingWorker : BackgroundService
                     {
                         _logger.LogError(ex, "Business processing logic failed for MessageId {MessageId}", message.MessageId);
                         existingJob.ErrorSummary = ex.Message;
+                        existingJob.Attempts++;
                         bool isPermanentFailure = ex is FileNotFoundException;
                         bool isRetryExhausted = existingJob.Attempts >= _settings.MaxRetryAttempts;
+
                         if(isPermanentFailure || isRetryExhausted)
                         {
                             existingJob.Status = ProcessingJobStatus.Failed;
-                            _logger.LogError("Processing failed for the Job: {JobId}", existingJob.Id);
                             await _context.SaveChangesAsync();
+
+                            _logger.LogError("Processing failed for the Job: {JobId}", existingJob.Id);
                             await _channel.BasicNackAsync(
                                 deliveryTag: ea.DeliveryTag,
                                 multiple: false,
@@ -234,8 +226,8 @@ public class SubmissionProcessingWorker : BackgroundService
                         else
                         {
                             existingJob.Status = ProcessingJobStatus.Queued;
-                            existingJob.Attempts++;
                             await _context.SaveChangesAsync();
+
                             _logger.LogInformation("Retrying the Job: {JobId}, Current Attempt:{Attempts}", existingJob.Id,existingJob.Attempts);
                             await _channel.BasicNackAsync(
                                 deliveryTag: ea.DeliveryTag,
@@ -297,5 +289,17 @@ public class SubmissionProcessingWorker : BackgroundService
             await _connection.DisposeAsync();
         }
         await base.StopAsync(cancellationToken);
+    }
+
+    private static DirectoryTraineeProfileResponse CreateFallbackProfile(string status,string note)
+    {
+        return new DirectoryTraineeProfileResponse
+        {
+            FullName = "Fallback Profile",
+            Email = "fallback@system.com",
+            TechStack = "Unknown",
+            Status = status,
+            ProfileNote = note
+        };
     }
 }

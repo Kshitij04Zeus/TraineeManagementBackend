@@ -89,7 +89,6 @@ public class LearningTaskService : ILearningTaskService {
       var updatedTask = await _context.LearningTasks.FindAsync(id);
       if (updatedTask == null) {
         throw new KeyNotFoundException($"Learning Task with ID {id} Not Found");
-        return null;
       }
 
       updatedTask.Title = request.Title;

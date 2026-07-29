@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 // using System.Threading.Tasks;
 
 namespace TraineeManagement.Api.Controllers {
-  [Authorize]
+  [Authorize(Policy = "AdminOrMentor")]
   [ApiController]
   [Route("api/learning-tasks")]
 

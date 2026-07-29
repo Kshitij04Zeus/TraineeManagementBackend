@@ -4,10 +4,11 @@ using TraineeManagement.Api.DTO;
 using TraineeManagement.Api.Models;
 using TraineeManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace TraineeManagement.Api.Controllers;
 
-[Authorize]
+[Authorize(Policy = "AdminOrMentorOrTrainee")]
 [ApiController]
 [Route("api/[controller]")]
 
@@ -43,9 +44,10 @@ public class SubmissionsController : ControllerBase {
   [DisableRequestSizeLimit] 
   [RequestFormLimits(MultipartBodyLengthLimit = 20971520)]
   [HttpPost("{submissionId:int}/files")]
-  public async Task<ActionResult> Upload(int submissionId,int userId,IFormFile file) 
+  public async Task<ActionResult> Upload(int submissionId,IFormFile file) 
   {
       var correlationId=HttpContext.TraceIdentifier;
+      int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
       var response=await _submissionservice.UploadAsync(submissionId,userId,file,correlationId);
       return Accepted(response);
   }

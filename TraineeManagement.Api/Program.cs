@@ -18,6 +18,7 @@ using Serilog;
 using TraineeManagement.Api.Services.HealthCheckServices;
 using DotNetEnv;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using TraineeManagement.Api.Policy;
 
 DotNetEnv.Env.Load();
 
@@ -156,6 +157,7 @@ builder.Services
 
 
 builder.Services.AddAuthorization();
+builder.Services.AddCustomAuthorization();
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {

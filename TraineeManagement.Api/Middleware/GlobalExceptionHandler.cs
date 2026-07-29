@@ -20,20 +20,20 @@ public class GlobalExceptionHandler : IExceptionHandler
     {
         _logger.LogError(exception, "Error occurred: {Message}", exception.Message);
  
-        var (statusCode, title) = exception switch
+        var (statusCode, title, detail) = exception switch
         {
-            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
-            KeyNotFoundException => (StatusCodes.Status404NotFound, "Resource Not Found"),
-            ArgumentException => (StatusCodes.Status400BadRequest, "Invalid Input"),
-            PayloadTooLargeException => (StatusCodes.Status413PayloadTooLarge, "Payload Too Large"),
-            _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized", exception.Message),
+            KeyNotFoundException => (StatusCodes.Status404NotFound, "Resource Not Found", exception.Message),
+            ArgumentException => (StatusCodes.Status400BadRequest, "Invalid Input", exception.Message),
+            PayloadTooLargeException => (StatusCodes.Status413PayloadTooLarge, "Payload Too Large", exception.Message),
+            _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred. Please try again later.")
         };
  
         var problemDetails = new ProblemDetails
         {
             Status = statusCode,
             Title = title,
-            Detail = exception.Message
+            Detail = detail
         };
  
         httpContext.Response.StatusCode = statusCode;
