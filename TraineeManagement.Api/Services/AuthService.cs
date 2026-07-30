@@ -35,7 +35,7 @@ public class AuthService:IAuthService
         return new LoginResponse
         {
             Token=token,
-            ExpiresIn=60,
+            ExpiresIn=int.Parse(Environment.GetEnvironmentVariable("Jwt__ExpiresIn")),
             User=new UserResponse
             {
                 Id=user.Id,

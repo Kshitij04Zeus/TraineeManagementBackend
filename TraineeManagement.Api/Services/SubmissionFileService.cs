@@ -129,10 +129,11 @@ public class SubmissionFileService:ISubmissionFileService
         if(metadata==null) throw new KeyNotFoundException("File Not Found");
 
         int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-        if (metadata.UploadedByUserId != userId)
+        string role = user.FindFirstValue(ClaimTypes.Role)!;
+        bool isPrivileged =(role == nameof(UserRole.Admin) ||role == nameof(UserRole.Mentor));
+        if (!isPrivileged && metadata.UploadedByUserId != userId)
         {
-            throw new UnauthorizedAccessException("You are not authorized to access this file.");
+            throw new UnauthorizedAccessException("You are not authorized to download this file.");
         }
 
         var exists=await _storage.ExistsAsync(metadata.StorageFileName);
@@ -153,11 +154,12 @@ public class SubmissionFileService:ISubmissionFileService
         var metadata=await _context.SubmissionFiles.FindAsync(fileId);
         if(metadata==null) throw new KeyNotFoundException("File Not Found");
 
-       int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-        if (metadata.UploadedByUserId != userId)
+        int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        string role = user.FindFirstValue(ClaimTypes.Role)!;
+        bool isPrivileged =(role == nameof(UserRole.Admin) ||role == nameof(UserRole.Mentor));
+        if (!isPrivileged && metadata.UploadedByUserId != userId)
         {
-            throw new UnauthorizedAccessException("You are not authorized to access this file.");
+            throw new UnauthorizedAccessException("You are not authorized to delete this file.");
         }
 
         await _storage.DeleteAsync(metadata.StorageFileName);
@@ -172,7 +174,9 @@ public class SubmissionFileService:ISubmissionFileService
         if(metadata==null) throw new KeyNotFoundException("File Not Found");
 
         int userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        if (metadata.UploadedByUserId != userId)
+        string role = user.FindFirstValue(ClaimTypes.Role)!;
+        bool isPrivileged =(role == nameof(UserRole.Admin) ||role == nameof(UserRole.Mentor));
+        if (!isPrivileged && metadata.UploadedByUserId != userId)
         {
             throw new UnauthorizedAccessException("You are not authorized to access this file.");
         }
