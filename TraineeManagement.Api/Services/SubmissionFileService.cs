@@ -45,9 +45,6 @@ public class SubmissionFileService:ISubmissionFileService
 
         var submission=await _context.Submissions.FindAsync(submissionId);
         if(submission==null) throw new KeyNotFoundException("Submission Not Found");
-
-        var trainee=await _context.Trainees.FindAsync(userId);
-        if(trainee==null) throw new KeyNotFoundException("Trainee Not Found");
         
         string checksum;
         using(var sha256=SHA256.Create())
